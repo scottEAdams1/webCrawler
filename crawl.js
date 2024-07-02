@@ -26,23 +26,49 @@ function getURLsFromHTML(htmlBody, baseURL) {
     return links
 }
 
-async function crawlPage(currenturl) {
+async function crawlPage(baseURL, currentURL = baseURL, pages = {}) {
+    const baseURLObj = new URL(baseURL)
+    const currentURLObj = new URL(currentURL)
+    if (baseURLObj.hostname !== currentURLObj.hostname) {
+        return pages
+    }
+    const normalisedCurrent = normalizeURL(currentURL)
+    if (normalisedCurrent in pages) {
+        pages[normalisedCurrent]++
+        return pages
+    } else {
+        pages[normalisedCurrent] = 1
+    }
+    let html
+    try {
+        html = await fetchPage(currentURL)
+    } catch(err) {
+        console.log(err.message)
+        return pages
+    }
+    const urlsFromHTML = getURLsFromHTML(html, baseURL)
+    for (let url of urlsFromHTML) {
+        pages = await crawlPage(baseURL, url, pages)
+    }
+    return pages
+    
+}
+
+async function fetchPage(currentURL) {
     let response
     try {
-        response = await fetch(currenturl)
+        response = await fetch(currentURL)
     } catch(err) {
         throw new Error(err.message)
     }
     if (response.status >= 400) {
-        console.log(`Error: ${response.status}`)
-        process.exit(1)
+        throw new Error(`Error: ${response.status}`)
     }
     const contentType = response.headers.get('content-type')
     if (contentType.includes('text/html') === false) {
-        console.log("Error: Not text/html")
-        process.exit(1)
+        throw new Error("Error: Not text/html")
     } else {
-        console.log(await response.text())
+        return await response.text()
     }
 }
 

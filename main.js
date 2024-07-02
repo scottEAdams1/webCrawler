@@ -10,7 +10,8 @@ async function main() {
     } else {
         const baseURL = process.argv[2]
         console.log(`Starting at: ${baseURL}`)
-        await crawlPage(baseURL)
+        const pages = await crawlPage(baseURL)
+        console.log(pages)
     }
 }
 
